@@ -65,7 +65,6 @@ app.post("/urls", (req, res) => { //use post to trigger previous entered form in
 });
 
 app.post('/urls/:id/delete', (req, res) => {
-  console.log("Cannot Delete All");
   // extract the id from the url
   // req.params
   const id = req.params.id;
