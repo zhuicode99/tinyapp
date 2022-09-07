@@ -59,8 +59,23 @@ app.post("/urls", (req, res) => { //use post to trigger previous entered form in
   console.log(req.body); // req.body = whatever I input on the form
   let id = generateRandomString();
   urlDatabase[id] = req.body.longURL; //{ longURL: 'google' }
-  res.redirect(`/urls/${id}`);//??whats this used for? not able to click and redirect
+  let templateVars = { id: id, longURL: urlDatabase[id]};
+  res.render('urls_show', templateVars)
+  //res.redirect(`/urls/${id}`);//??whats this used for? not able to click and redirect
 });
+
+app.post('/urls/:id/delete', (req, res) => {
+  console.log("Cannot Delete All");
+  // extract the id from the url
+  // req.params
+  const id = req.params.id;
+  // delete it from the db
+  delete urlDatabase[id];
+  // redirect to /quotes
+  res.redirect('/urls');
+
+});
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
