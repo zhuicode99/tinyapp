@@ -153,18 +153,33 @@ app.post('/urls/:id/delete', (req, res) => {
   res.redirect('/urls');
 });
 
-
+//get to login
+app.get('/login', (req, res) => {
+  const id = req.cookies.user_id;
+  let email = "";
+  if (users[id]) {
+    email = users[id].email;
+  } else {
+    email = undefined;
+  };
+  const templateVars = {urls: urlDatabase, username: req.cookies.email};
+  res.render("urls_login", templateVars);
+});
 
 //login 
 app.post('/login', (req, res) => {
-  console.log(req.body.username)
-  res.cookie('username', req.body.username);
+  const pswd = req.body.password;
+  const id = req.cookies.user_id;
+  if (!users[id] || users[id].password !== pswd) {
+    return res.sendStatus(400).send('Incorrect email or password!');
+  }
+  res.cookie('user_id', id);//change cookie from username to user_id
   return res.redirect("/urls");
 });
 
 //logout
 app.post('/logout', (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id'); //change cookie from username to user_id
   return res.redirect("/urls");
 });
 
@@ -193,10 +208,10 @@ app.post('/register', (req, res) => {
     return res.sendStatus(400).send('Sorry! Your entry is either empty or invalid.')
   } 
   if (getUserByEmail(email)) {
-    return res.send(`${email} already registered`)
+    return res.sendStatus(400).send(`${email} already registered`)
     // return res.send("Already Registered")
   } 
-  res.cookie('user_id', id);
+  res.cookie('user_id', templateVars);// templatevars or id?
   res.redirect("/urls");//why not register page?
 });
 
