@@ -60,8 +60,15 @@ app.get("/hello", (req, res) => {
 
 //define username for login/out
 app.get('/urls', (req, res) => {  // this function has to be infront of second function
-  const email = req.cookies.user_id
-  const templateVars = { urls: urlDatabase, username: req.cookies.username };
+  const id = req.cookies.user_id;
+  let email = "";
+  if (users[id]) {
+    email = users[id].email;
+  } else {
+    email = undefined;
+  };
+
+  const templateVars = { urls: urlDatabase, username: req.cookies.email };
   res.render('urls_index', templateVars);
 });
 
@@ -81,7 +88,14 @@ app.post("/urls", (req, res) => { //use post to trigger previous entered form in
 
 //GET route to render the urls_new.ejs template
 app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new/ otherwise error
-  const templateVars = {urls: urlDatabase, username: req.cookies.username};
+  const id = req.cookies.user_id;
+  let email = "";
+  if (users[id]) {
+    email = users[id].email;
+  } else {
+    email = undefined;
+  };
+  const templateVars = {urls: urlDatabase, username: req.cookies.email};
   res.render("urls_new", templateVars);
 });
 
@@ -93,11 +107,19 @@ app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new
 
 //search for the longUrl by shortUrl
 app.get("/urls/:id", (req, res) => {  //id is shortURL
+  const id = req.cookies.user_id;
+  let email = "";
+  if (users[id]) {
+    email = users[id].email;
+  } else {
+    email = undefined;
+  };
+
   const templateVars = { 
     id: req.params.id, 
     longURL: urlDatabase[req.params.id],
     urls: urlDatabase,
-    username: req.cookies.username
+    username: req.cookies.email
   };
   res.render("urls_show", templateVars);
  /*  console.log("here", templateVars)   if key already exist,return the value:longURL
@@ -130,6 +152,8 @@ app.post('/urls/:id/delete', (req, res) => {
   delete urlDatabase[id];
   res.redirect('/urls');
 });
+
+
 
 //login 
 app.post('/login', (req, res) => {
