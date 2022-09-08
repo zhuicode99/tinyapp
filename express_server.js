@@ -116,6 +116,17 @@ app.post('/logout', (req, res) => {
   return res.redirect("/urls");
 });
 
+//w3d3:1 : render the new template
+app.get('/register', (req, res) => {
+  const templateVars = {
+    // email: req.params.email,
+    username: req.cookies.username, //have to use username to reference to the register template
+    // password: req.params.password
+  }; 
+  // console.log("here", req.cookies.username)
+  res.render("urls_register", templateVars);
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
