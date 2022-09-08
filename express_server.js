@@ -37,30 +37,31 @@ app.get('/urls', (req, res) => {  // this function has to be infront of second f
   res.render('urls_index', templateVars);
 });
 
-app.get("/urls", (req, res) => { // the second /urls function.
+/* app.get("/urls", (req, res) => { // the second /urls function. duplicated
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
-});
-
-app.get("/urls/new", (req, res) => { //use form method-post to action-urls
-  res.render("urls_new");
-});
-
+}); */
 
 app.post("/urls", (req, res) => { //use post to trigger previous entered form info, from urls/new to urls.
+  const id = generateRandomString();
   console.log(req.body); // req.body = whatever I input on the form
-  let id = generateRandomString();
   urlDatabase[id] = req.body.longURL; //{ longURL: 'google' }
-  const templateVars = { id: id, longURL: urlDatabase[id]};
-  res.render('urls_show', templateVars)
-  //res.redirect(`/urls/${id}`);//??whats this used for? not able to click and redirect
+  // const templateVars = { id: id, longURL: urlDatabase[id]};// why cause error
+  // res.render('urls_show', templateVars)//these two lines not allow me to redirect.
+  res.redirect("/urls");//??whats this used for? not able to click and redirect
 });
 
 //GET route to render the urls_new.ejs template
-app.get("/urls/new", (req, res) => {
+app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new/ otherwise error
   const templateVars = {urls: urlDatabase, username: req.cookies.username};
   res.render("urls_new", templateVars);
 });
+
+//useless, causing error when submitting new url.
+/* app.get("/urls/new", (req, res) => { //use form method-post to action-urls
+  res.render("urls_new");
+}); */
+
 
 //search for the longUrl by shortUrl
 app.get("/urls/:id", (req, res) => {  //id is shortURL
@@ -74,7 +75,12 @@ app.get("/urls/:id", (req, res) => {  //id is shortURL
  /*  console.log("here", templateVars)   if key already exist,return the value:longURL
   console.log("param", req.params) */
   //req.params = input on http url
-}); 
+});
+
+app.post('/urls/:id', (req, res) => {
+  res.redirect(`/urls/${req.params.id}`);
+});
+
 
 //if input exist shortURL, will redirect to related longURL
 app.get("/u/:id", (req, res) => { //id is shortURL
@@ -83,8 +89,8 @@ app.get("/u/:id", (req, res) => { //id is shortURL
 });
 
 //after delete part, start edit part
-app.post("/urls/:id", (req, res) => {
-  urlDatabase[req.params.id] = req.body.longURL;//?
+app.post("/urls/:id", (req, res) => { //EDIT
+  urlDatabase[req.params.id] = req.body.longURL;//EDIT
   res.redirect("/urls"); 
 })
 
