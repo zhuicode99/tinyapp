@@ -1,11 +1,10 @@
 const express = require("express");
+const cookieParser = require('cookie-parser')
 const app = express();
 const PORT = 8080; // default port 8080
-const bodyParser = require("body-parser")
-const cookieParser = require('cookie-parser')
 
 app.set("view engine", "ejs");
-app.use(bodyParser.urlencoded({ extended: true }));//body-parser,from buffer to str so we can read
+app.use(express.urlencoded({ extended: true }));//body-parser,from buffer to str so we can read
 app.use(cookieParser());
 
 function generateRandomString() {
@@ -20,7 +19,6 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -33,7 +31,13 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
-app.get("/urls", (req, res) => {
+//define username for login/out
+app.get('/urls', (req, res) => {  // this function has to be infront of second function
+  const templateVars = { urls: urlDatabase, username: req.cookies.username };
+  res.render('urls_index', templateVars);
+});
+
+app.get("/urls", (req, res) => { // the second /urls function.
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
@@ -42,13 +46,34 @@ app.get("/urls/new", (req, res) => { //use form method-post to action-urls
   res.render("urls_new");
 });
 
+
+app.post("/urls", (req, res) => { //use post to trigger previous entered form info, from urls/new to urls.
+  console.log(req.body); // req.body = whatever I input on the form
+  let id = generateRandomString();
+  urlDatabase[id] = req.body.longURL; //{ longURL: 'google' }
+  const templateVars = { id: id, longURL: urlDatabase[id]};
+  res.render('urls_show', templateVars)
+  //res.redirect(`/urls/${id}`);//??whats this used for? not able to click and redirect
+});
+
+//GET route to render the urls_new.ejs template
+app.get("/urls/new", (req, res) => {
+  const templateVars = {urls: urlDatabase, username: req.cookies.username};
+  res.render("urls_new", templateVars);
+});
+
 //search for the longUrl by shortUrl
 app.get("/urls/:id", (req, res) => {  //id is shortURL
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
+  const templateVars = { 
+    id: req.params.id, 
+    longURL: urlDatabase[req.params.id],
+    urls: urlDatabase,
+    username: req.cookies.username
+  };
+  res.render("urls_show", templateVars);
  /*  console.log("here", templateVars)   if key already exist,return the value:longURL
   console.log("param", req.params) */
   //req.params = input on http url
-  res.render("urls_show", templateVars);
 }); 
 
 //if input exist shortURL, will redirect to related longURL
@@ -57,40 +82,33 @@ app.get("/u/:id", (req, res) => { //id is shortURL
   res.redirect(longURL); //if input exist, you can click to redirect
 });
 
-app.post("/urls", (req, res) => { //use post to trigger previous entered form info, from urls/new to urls.
-  console.log(req.body); // req.body = whatever I input on the form
-  let id = generateRandomString();
-  urlDatabase[id] = req.body.longURL; //{ longURL: 'google' }
-  let templateVars = { id: id, longURL: urlDatabase[id]};
-  res.render('urls_show', templateVars)
-  //res.redirect(`/urls/${id}`);//??whats this used for? not able to click and redirect
-});
+//after delete part, start edit part
+app.post("/urls/:id", (req, res) => {
+  urlDatabase[req.params.id] = req.body.longURL;//?
+  res.redirect("/urls"); 
+})
 
+//delete a url
 app.post('/urls/:id/delete', (req, res) => {
-  // extract the id from the url
-  // req.params
+  // extract the id from the url // req.params
   const id = req.params.id;
   // delete it from the db
   delete urlDatabase[id];
-  // redirect to /quotes
   res.redirect('/urls');
-
 });
-//after delete part, start edit part
-app.post("/urls/:id", (req, res) => {
-  urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect("/urls");
-})
 
+//login 
+app.post('/login', (req, res) => {
+  console.log(req.body.username)
+  res.cookie('username', req.body.username);
+  return res.redirect("/urls");
+});
 
-//COOKIES below
-app.get('/', function (req, res) {
-  // Cookies that have not been signed
-  console.log('Cookies: ', req.cookies)
-
-  // Cookies that have been signed
-  console.log('Signed Cookies: ', req.signedCookies)
-})
+//logout
+app.post('/logout', (req, res) => {
+  res.clearCookie('username');
+  return res.redirect("/urls");
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
