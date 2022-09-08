@@ -7,6 +7,7 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));//body-parser,from buffer to str so we can read
 app.use(cookieParser());
 
+//global variables
 function generateRandomString() {
   let randomStr = "";
   let calc = (Math.random()).toString(36).substring(2, 8);
@@ -19,6 +20,32 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
+//return username by given email.
+const getUserByEmail = (email) => {
+  for (let user in users) {
+    let userInfo = users[user];
+    if (userInfo.email === email) {
+      return true;/* userInfo; */
+    }
+  }
+  return false;// return "This email not registered yet!"
+}
+
+
+//endpoints
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -33,6 +60,7 @@ app.get("/hello", (req, res) => {
 
 //define username for login/out
 app.get('/urls', (req, res) => {  // this function has to be infront of second function
+  const email = req.cookies.user_id
   const templateVars = { urls: urlDatabase, username: req.cookies.username };
   res.render('urls_index', templateVars);
 });
@@ -125,6 +153,27 @@ app.get('/register', (req, res) => {
   }; 
   // console.log("here", req.cookies.username)
   res.render("urls_register", templateVars);
+});
+
+//create post /register route
+app.post('/register', (req, res) => {
+  const id = generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  const templateVars = { 
+    id: id,
+    email: email,
+    password: password
+  };
+  if (!email || !password) {
+    return res.sendStatus(400).send('Sorry! Your entry is either empty or invalid.')
+  } 
+  if (getUserByEmail(email)) {
+    return res.send(`${email} already registered`)
+    // return res.send("Already Registered")
+  } 
+  res.cookie('user_id', id);
+  res.redirect("/urls");//why not register page?
 });
 
 app.listen(PORT, () => {
