@@ -1,13 +1,19 @@
 const express = require("express");
-const cookieParser = require('cookie-parser')
+// const cookieParser = require('cookie-parser')
+const cookieSession = require('cookie-session');
 const app = express();
-const bcrypt = require('bcryptjs')
+const bcrypt = require('bcryptjs');
 const PORT = 8080; // default port 8080
 
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));//body-parser,from buffer to str so we can read
-app.use(cookieParser());
+// app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['asdg76gas46dsag8ga5'],
+  maxAge: 24 * 60 * 60 * 1000 
+}))
 
 //global variables
 function generateRandomString() {
@@ -49,7 +55,11 @@ const getUserByEmail = (email) => {
 
 //endpoints
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  if (req.session.user_id) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  }
 });
 
 app.get("/urls.json", (req, res) => { //still return key with bracket?
@@ -62,7 +72,7 @@ app.get("/hello", (req, res) => {
 
 //define username for login/out
 app.get('/urls', (req, res) => {  // this function has to be infront of second function
-  const id = req.cookies.user_id;
+  const id = req.session.user_id;
   let email = "";
   if (users[id]) {
     email = users[id].email;
@@ -90,7 +100,7 @@ app.post("/urls", (req, res) => { //use post to trigger previous entered form in
 
 //GET route to render the urls_new.ejs template
 app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new/ otherwise error
-  const id = req.cookies.user_id;
+  const id = req.session.user_id;
   // console.log("1", id)
   let email = "";
   if (users[id]) {
@@ -98,7 +108,7 @@ app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new
   } else {
     email = undefined;
   };
-  const templateVars = {urls: urlDatabase, username: req.cookies.email};
+  const templateVars = {urls: urlDatabase, username: req.session.email};
   res.render("urls_new", templateVars);
 });
 
@@ -110,7 +120,7 @@ app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new
 
 //search for the longUrl by shortUrl
 app.get("/urls/:id", (req, res) => {  //id is shortURL
-  const id = req.cookies.user_id;
+  const id = req.session.user_id;
   let email = "";
   if (users[id]) {
     email = users[id].email;
@@ -122,7 +132,7 @@ app.get("/urls/:id", (req, res) => {  //id is shortURL
     id: req.params.id, 
     longURL: urlDatabase[req.params.id],
     urls: urlDatabase,
-    username: req.cookies.email
+    username: req.session.email
   };
   res.render("urls_show", templateVars);
  /*  console.log("here", templateVars)   if key already exist,return the value:longURL
@@ -158,7 +168,7 @@ app.post('/urls/:id/delete', (req, res) => {
 
 //get to login
 app.get('/login', (req, res) => {
-  const id = req.cookies.user_id;
+  const id = req.session.user_id;
 
   let email = "";
   if (users[id]) {
@@ -184,7 +194,7 @@ app.post('/login', (req, res) => {
   if (!bcrypt.compareSync(pswd, users[userId].password)) {
     return res.status(400).send('Incorrect password!');
   }
-  res.cookie('user_id', userId);
+  res.session('user_id', userId);
   res.redirect("/urls");
 });
 
@@ -192,7 +202,7 @@ app.post('/login', (req, res) => {
 
 //logout
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id'); //change cookie from username to user_id
+  res.clearSession('user_id'); //change cookie from username to user_id
   return res.redirect("/urls");
 });
 
@@ -200,7 +210,7 @@ app.post('/logout', (req, res) => {
 app.get('/register', (req, res) => {
   const templateVars = {
     // email: req.params.email,
-    username: req.cookies.email, //have to use username to reference to the register template//changed from username to email
+    username: req.session.email, //have to use username to reference to the register template//changed from username to email
     // password: req.params.password
   }; 
   // console.log("here", req.cookies.username)
@@ -224,7 +234,7 @@ app.post('/register', (req, res) => {
     return res.status(400).send(`${email} already registered`)
     // return res.send("Already Registered")
   } 
-  res.cookie('user_id', templateVars);// templatevars or id?
+  res.session('user_id', templateVars);// templatevars or id?
   res.redirect("/urls");//why not register page?
 });
 
