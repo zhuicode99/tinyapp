@@ -1,7 +1,9 @@
 const express = require("express");
 const cookieParser = require('cookie-parser')
 const app = express();
+const bcrypt = require('bcryptjs')
 const PORT = 8080; // default port 8080
+
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));//body-parser,from buffer to str so we can read
@@ -161,6 +163,7 @@ app.get('/login', (req, res) => {
   let email = "";
   if (users[id]) {
     email = users[id].email;
+    res.redirect('urls');
   } else {
     email = undefined;
   };
@@ -178,7 +181,7 @@ app.post('/login', (req, res) => {
   if (!users[userId]) {
     return res.status(400).send('Incorrect email!');
   }
-  if (users[userId].password !== pswd) {
+  if (!bcrypt.compareSync(pswd, users[userId].password)) {
     return res.status(400).send('Incorrect password!');
   }
   res.cookie('user_id', userId);
@@ -212,7 +215,7 @@ app.post('/register', (req, res) => {
   const templateVars = { 
     id: id,
     email: email,
-    password: password
+    password: bcrypt.hashSync(password, 10)
   };
   if (!email || !password) {
     return res.status(400).send('Sorry! Your entry is either empty or invalid.')
