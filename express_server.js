@@ -4,7 +4,10 @@ const cookieSession = require('cookie-session');
 const app = express();
 const bcrypt = require('bcryptjs');
 const PORT = 8080; // default port 8080
-
+const { 
+  getUserByEmail,
+  users,
+} = require('./helpers');
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));//body-parser,from buffer to str so we can read
@@ -28,29 +31,6 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "purple-monkey-dinosaur",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "aaa"//"dishwasher-funk",
-  },
-};
-
-//return username by given email.
-const getUserByEmail = (email) => {
-  let userId = "";
-  for (let key of Object.keys(users)) {
-    if (users[key]['email'] === email) {
-      userId = key
-    }
-  }
-  return userId;
-}
 
 
 //endpoints
@@ -184,7 +164,7 @@ app.get('/login', (req, res) => {
 //login 
 app.post('/login', (req, res) => {
   const email = req.body.email;
-  const userId = getUserByEmail(email)
+  const userId = getUserByEmail(email, users)
   // const id = req.cookies.user_id;
   const pswd = req.body.password;
 
