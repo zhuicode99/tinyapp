@@ -1,5 +1,4 @@
 const express = require("express");
-// const cookieParser = require('cookie-parser')
 const cookieSession = require('cookie-session');
 const app = express();
 const bcrypt = require('bcryptjs');
@@ -7,117 +6,77 @@ const PORT = 8080; // default port 8080
 const { 
   getUserByEmail,
   users,
+  generateRandomString,
+  urlDatabase,
+  userData,
+  userStatus,
+  userPerm,
+  userInfo,
 } = require('./helpers');
 
 app.set("view engine", "ejs");
-app.use(express.urlencoded({ extended: true }));//body-parser,from buffer to str so we can read
-// app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
-  keys: ['asdg76gas46dsag8ga5'],
-  maxAge: 24 * 60 * 60 * 1000 
+  keys: ['superman'],
+  maxAge: 24 * 60 * 60 * 1000 ///?
 }))
 
-//global variables
-function generateRandomString() {
-  let randomStr = "";
-  let calc = (Math.random()).toString(36).substring(2, 8);
-  randomStr += calc;
-  return randomStr;
-};
 
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
-};
+//------------Endpoints------------
 
-
-
-//endpoints
-app.get("/", (req, res) => {
+//Homepage: already logged in,redir to url page, if not, login page
+app.get('/', (req, res) => {
   if (req.session.user_id) {
-    res.redirect("/urls");
+    res.redirect('/urls');
   } else {
-    res.redirect("/login");
+    res.redirect('/login');
   }
 });
 
-app.get("/urls.json", (req, res) => { //still return key with bracket?
-  res.json(urlDatabase);
-});
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
-//define username for login/out
-app.get('/urls', (req, res) => {  // this function has to be infront of second function
-  const id = req.session.user_id;
-  let email = "";
-  if (users[id]) {
-    email = users[id].email;
-  } else {
-    email = undefined;
-  };
-
-  const templateVars = { urls: urlDatabase, username: email };
+app.get('/urls', (req, res) => {  
+  if (!userStatus(req.session)) {
+    res.status(401).send('<h1><center>Please log in first</center></h1>');
+  }
+ 
+  const data = userData(req.session);
+  const info = userInfo(req.session.user_id)
+  const templateVars = { urls: info, username: data.username };
   res.render('urls_index', templateVars);
 });
 
-/* app.get("/urls", (req, res) => { // the second /urls function. duplicated
-  const templateVars = { urls: urlDatabase };
-  res.render("urls_index", templateVars);
-}); */
 
-app.post("/urls", (req, res) => { //use post to trigger previous entered form info, from urls/new to urls.
-  const id = generateRandomString();
-  console.log(req.body); // req.body = whatever I input on the form
-  urlDatabase[id] = req.body.longURL; //{ longURL: 'google' }
-  // const templateVars = { id: id, longURL: urlDatabase[id]};// why cause error
-  // res.render('urls_show', templateVars)//these two lines not allow me to redirect.
-  res.redirect("/urls");//??whats this used for? not able to click and redirect
-});
 
 //GET route to render the urls_new.ejs template
 app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new/ otherwise error
-  const id = req.session.user_id;
-  // console.log("1", id)
-  let email = "";
-  if (users[id]) {
-    email = users[id].email;
-  } else {
-    email = undefined;
-  };
-  const templateVars = {urls: urlDatabase, username: req.session.email};
+  
+  if (!userStatus(req.session)) {
+    return res.redirect('/login');
+  }
+  
+  const data = userData(req.session);
+  const templateVars = {username: data.username};//////data(req.session)
   res.render("urls_new", templateVars);
 });
-
-//useless, causing error when submitting new url.
-/* app.get("/urls/new", (req, res) => { //use form method-post to action-urls
-  res.render("urls_new");
-}); */
 
 
 //search for the longUrl by shortUrl
 app.get("/urls/:id", (req, res) => {  //id is shortURL
-  const id = req.session.user_id;
-  let email = "";
-  if (users[id]) {
-    email = users[id].email;
-  } else {
-    email = undefined;
-  };
-
+  
+  const perm = userPerm(req);
+  if (!userPerm.permission) {
+    return res.status(perm.status).send(perm.send);
+  }
+  const data = userData(req.session);
+  // const info = getUserDatabase(id)
   const templateVars = { 
     id: req.params.id, 
     longURL: urlDatabase[req.params.id],
-    urls: urlDatabase,
-    username: req.session.email
+    username: data.username,
+    urls: urlDatabase
   };
   res.render("urls_show", templateVars);
- /*  console.log("here", templateVars)   if key already exist,return the value:longURL
-  console.log("param", req.params) */
-  //req.params = input on http url
 });
 
 app.post('/urls/:id', (req, res) => {
@@ -131,13 +90,22 @@ app.get("/u/:id", (req, res) => { //id is shortURL
   res.redirect(longURL); //if input exist, you can click to redirect
 });
 
-//after delete part, start edit part
+app.post("/urls", (req, res) => { //use post to trigger previous entered form info, from urls/new to urls.
+  const id = generateRandomString();
+  console.log(req.body); // req.body = whatever I input on the form
+  urlDatabase[id] = req.body.longURL; //{ longURL: 'google' }
+  // const templateVars = { id: id, longURL: urlDatabase[id]};// why cause error
+  // res.render('urls_show', templateVars)//these two lines not allow me to redirect.
+  res.redirect("/urls");//??whats this used for? not able to click and redirect
+});
+
+//edit 
 app.post("/urls/:id", (req, res) => { //EDIT
   urlDatabase[req.params.id] = req.body.longURL;//EDIT
   res.redirect("/urls"); 
 })
 
-//delete a url
+//delete 
 app.post('/urls/:id/delete', (req, res) => {
   // extract the id from the url // req.params
   const id = req.params.id;
@@ -148,74 +116,66 @@ app.post('/urls/:id/delete', (req, res) => {
 
 //get to login
 app.get('/login', (req, res) => {
-  const id = req.session.user_id;
+  if (userStatus(req.session)) {
+    return res.redirect('/urls') // if logged in, redir to homepage
+  }
 
-  let email = "";
-  if (users[id]) {
-    email = users[id].email;
-    res.redirect('urls');
-  } else {
-    email = undefined;
-  };
-  const templateVars = {username: email};
-  res.render("urls_login", templateVars);
+  const data = userData('');
+  res.render("urls_login", data);
+});
+
+//w3d3:1 : render the new template
+app.get('/register', (req, res) => {
+  if (userStatus(req.session)) {//if user logged in, redirect back to homepage
+    
+    res.redirect("/urls_");
+  } 
+  const templateVars = { username: req.session.username };
+  
+  return res.render('urls_register', templateVars);
 });
 
 //login 
 app.post('/login', (req, res) => {
   const email = req.body.email;
   const userId = getUserByEmail(email, users)
-  // const id = req.cookies.user_id;
   const pswd = req.body.password;
 
   if (!users[userId]) {
-    return res.status(400).send('Incorrect email!');
+    return res.status(400).send('<h3>Incorrect email!</h3>');
   }
   if (!bcrypt.compareSync(pswd, users[userId].password)) {
-    return res.status(400).send('Incorrect password!');
+    return res.status(400).send('<h3>Incorrect password!</h3>');
   }
-  res.session('user_id', userId);
-  res.redirect("/urls");
-});
-
-
-
-//logout
-app.post('/logout', (req, res) => {
-  res.clearSession('user_id'); //change cookie from username to user_id
+  res.session.user_id = userId;
   return res.redirect("/urls");
 });
 
-//w3d3:1 : render the new template
-app.get('/register', (req, res) => {
-  const templateVars = {
-    // email: req.params.email,
-    username: req.session.email, //have to use username to reference to the register template//changed from username to email
-    // password: req.params.password
-  }; 
-  // console.log("here", req.cookies.username)
-  res.render("urls_register", templateVars);
-});
-
-//create post /register route
+//done ?//create post /register route
 app.post('/register', (req, res) => {
-  const id = generateRandomString();
-  const email = req.body.email;
-  const password = req.body.password;
-  const templateVars = { 
-    id: id,
-    email: email,
-    password: bcrypt.hashSync(password, 10)
-  };
+  let email = req.body.email;
+  let password = req.body.password;
+  
   if (!email || !password) {
-    return res.status(400).send('Sorry! Your entry is either empty or invalid.')
+    return res.status(400).send('<h3>Sorry! Your entry is either empty or invalid.</h3>')//html format
   } 
   if (getUserByEmail(email)) {
-    return res.status(400).send(`${email} already registered`)
-    // return res.send("Already Registered")
+    return res.status(400).send(`<h3>${email} already registered</h3>`)
   } 
-  res.session('user_id', templateVars);// templatevars or id?
-  res.redirect("/urls");//why not register page?
+  const randomId = generateRandomString();
+  users[randomId] = { 
+    id: randomId,
+    email: req.body.email,
+    password: bcrypt.hashSync(password, 10)
+  };
+  res.session.user_id = randomId;
+  res.redirect("/urls");
+});
+
+//done//logout
+app.post('/logout', (req, res) => {
+  res.clearCookie('session'); //change cookie from username to user_id
+  return res.redirect("/");
 });
 
 app.listen(PORT, () => {
