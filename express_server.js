@@ -29,19 +29,19 @@ const users = {
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: "aaa"//"dishwasher-funk",
   },
 };
 
 //return username by given email.
 const getUserByEmail = (email) => {
-  for (let user in users) {
-    let userInfo = users[user];
-    if (userInfo.email === email) {
-      return true;/* userInfo; */
+  let userId = "";
+  for (let key of Object.keys(users)) {
+    if (users[key]['email'] === email) {
+      userId = key
     }
   }
-  return false;// return "This email not registered yet!"
+  return userId;
 }
 
 
@@ -68,7 +68,7 @@ app.get('/urls', (req, res) => {  // this function has to be infront of second f
     email = undefined;
   };
 
-  const templateVars = { urls: urlDatabase, username: req.cookies.email };
+  const templateVars = { urls: urlDatabase, username: email };
   res.render('urls_index', templateVars);
 });
 
@@ -89,6 +89,7 @@ app.post("/urls", (req, res) => { //use post to trigger previous entered form in
 //GET route to render the urls_new.ejs template
 app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new/ otherwise error
   const id = req.cookies.user_id;
+  // console.log("1", id)
   let email = "";
   if (users[id]) {
     email = users[id].email;
@@ -156,26 +157,35 @@ app.post('/urls/:id/delete', (req, res) => {
 //get to login
 app.get('/login', (req, res) => {
   const id = req.cookies.user_id;
+
   let email = "";
   if (users[id]) {
     email = users[id].email;
   } else {
     email = undefined;
   };
-  const templateVars = {urls: urlDatabase, username: req.cookies.email};
+  const templateVars = {username: email};
   res.render("urls_login", templateVars);
 });
 
 //login 
 app.post('/login', (req, res) => {
+  const email = req.body.email;
+  const userId = getUserByEmail(email)
+  // const id = req.cookies.user_id;
   const pswd = req.body.password;
-  const id = req.cookies.user_id;
-  if (!users[id] || users[id].password !== pswd) {
-    return res.sendStatus(400).send('Incorrect email or password!');
+
+  if (!users[userId]) {
+    return res.status(400).send('Incorrect email!');
   }
-  res.cookie('user_id', id);//change cookie from username to user_id
-  return res.redirect("/urls");
+  if (users[userId].password !== pswd) {
+    return res.status(400).send('Incorrect password!');
+  }
+  res.cookie('user_id', userId);
+  res.redirect("/urls");
 });
+
+
 
 //logout
 app.post('/logout', (req, res) => {
@@ -187,7 +197,7 @@ app.post('/logout', (req, res) => {
 app.get('/register', (req, res) => {
   const templateVars = {
     // email: req.params.email,
-    username: req.cookies.username, //have to use username to reference to the register template
+    username: req.cookies.email, //have to use username to reference to the register template//changed from username to email
     // password: req.params.password
   }; 
   // console.log("here", req.cookies.username)
@@ -205,10 +215,10 @@ app.post('/register', (req, res) => {
     password: password
   };
   if (!email || !password) {
-    return res.sendStatus(400).send('Sorry! Your entry is either empty or invalid.')
+    return res.status(400).send('Sorry! Your entry is either empty or invalid.')
   } 
   if (getUserByEmail(email)) {
-    return res.sendStatus(400).send(`${email} already registered`)
+    return res.status(400).send(`${email} already registered`)
     // return res.send("Already Registered")
   } 
   res.cookie('user_id', templateVars);// templatevars or id?
