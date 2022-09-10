@@ -70,24 +70,31 @@ app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new
 //search for the longUrl by shortUrl
 app.get("/urls/:id", (req, res) => {  //id is shortURL
   
-  const perm = userPerm(req);
-  if (!userPerm.permission) {
-    return res.status(perm.status).send(perm.send);
+  const permission = userPerm(req);
+  if (!permission.permission) {
+    return res.status(permission.status).send(permission.send);
   }
-  const data = userData(req.session);
-  // const info = getUserDatabase(id)
-  const templateVars = { 
-    id: req.params.id, 
-    longURL: urlDatabase[req.params.id],
-    username: data.username,
-    urls: urlDatabase
+
+  const userInfo = userData(req.session);
+  const userDatabase = getUrlsForUser(req.session.user_id);
+  const urlData = userDatabase[req.params.id];
+  const userVariables = {
+    id: req.params.id,
+    longURL: urlData.longURL,
+    username: userInfo.username,
   };
-  res.render("urls_show", templateVars);
+  return res.render('urls_show', userVariables);
 });
+
+
+
 
 app.post('/urls/:id', (req, res) => {
   res.redirect(`/urls/${req.params.id}`);
 });
+
+
+
 
 
 //if input exist shortURL, will redirect to related longURL
@@ -96,18 +103,31 @@ app.get("/u/:id", (req, res) => { //id is shortURL
   res.redirect(longURL); 
 });
 
+
 app.post("/urls", (req, res) => { //use post to trigger previous entered form info, from urls/new to urls.
-  const id = generateRandomString();
-  console.log(req.body); 
+  if (!userStatus(req.session)) {
+    return res.status(401).send('<h1><center>Please login to use ShortURL!</center></h1>');
+  }
+  const id = generateRandomString();//short url
+ 
+  urlDatabase[id] = {
+    urlID: id,
+    longURL: req.body.longURL,
+    userID: req.session.user_id,
+  };
+
   urlDatabase[id] = req.body.longURL; 
-  res.redirect("/urls");
+  return res.redirect(`/urls/${id}`);
 });
+
 
 //edit 
 app.post("/urls/:id", (req, res) => { 
   urlDatabase[req.params.id] = req.body.longURL;
   res.redirect("/urls"); 
 })
+
+
 
 //delete 
 app.post('/urls/:id/delete', (req, res) => {
@@ -134,6 +154,7 @@ app.get('/register', (req, res) => {
     res.redirect("/urls_");
   } 
   const templateVars = { username: req.session.user_id };
+
   
   return res.render('urls_register', templateVars);
 });
