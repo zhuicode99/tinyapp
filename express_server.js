@@ -32,6 +32,7 @@ app.get('/', (req, res) => {
   if (req.session.user_id) {
     res.redirect('/urls');
   } else {
+    req.session = null;
     res.redirect('/login');
   }
 });
@@ -78,19 +79,27 @@ app.get("/urls/:id", (req, res) => {  //id is shortURL
   const userInfo = userData(req.session);
   const userDatabase = getUrlsForUser(req.session.user_id);
   const urlData = userDatabase[req.params.id];
-  const userVariables = {
+  const templateVars = {
     id: req.params.id,
     longURL: urlData.longURL,
-    username: userInfo.username,
+    username: userInfo.id, //changed from userInfo.username to id
   };
-  return res.render('urls_show', userVariables);
+  // console.log("right here",userInfo.id)
+  return res.render('urls_show', templateVars);
 });
 
 
 
 
 app.post('/urls/:id', (req, res) => {
-  res.redirect(`/urls/${req.params.id}`);
+  const permission = userPerm(req);
+
+  if (!permission.permission) {
+    return res.status(permission.status).send(permission.send);
+  }
+
+  urlDatabase[req.params.id].longURL = req.body.longURL;
+  return res.redirect('/urls');
 });
 
 
@@ -116,15 +125,22 @@ app.post("/urls", (req, res) => { //use post to trigger previous entered form in
     userID: req.session.user_id,
   };
 
-  urlDatabase[id] = req.body.longURL; 
+  // urlDatabase[id] = req.body.longURL; 
   return res.redirect(`/urls/${id}`);
 });
 
 
 //edit 
 app.post("/urls/:id", (req, res) => { 
-  urlDatabase[req.params.id] = req.body.longURL;
+  const permission = userPerm(req);
+  if (!permission.permission) {
+    return res.status(permission.status).send(permission.send);
+  }
+
+
+  urlDatabase[req.params.id].longURL = req.body.longURL;
   res.redirect("/urls"); 
+  console.log("righthere",req.body.longURL)
 })
 
 
@@ -164,7 +180,7 @@ app.post('/login', (req, res) => {
   const email = req.body.email;
   const pswd = req.body.password;
   const userId = getUserByEmail(email)
-  if (!userId || !bcrypt.compareSync(pswd, users[userId].password)&&false) {
+  if (!userId || !bcrypt.compareSync(pswd, users[userId].password)) {
     res.send("Incorrect email or password!<a href='/login'>Please Try Again!</a>");
     return;
   }
@@ -200,7 +216,8 @@ app.post('/register', (req, res) => {
 
 //done//logout
 app.post('/logout', (req, res) => {
-  res.clearCookie('session'); //change cookie from username to user_id
+  // res.clearCookie('session'); //change cookie from username to user_id
+  req.session = null;
   return res.redirect("/");
 });
 
