@@ -65,29 +65,15 @@ const userStatus = (session) => {
 };
 
 
-
 const userPerm = (req) => {
   if (!userStatus(req.session)) {
-    return {
-      status: 401,
-      send: "Please log in first! <a href='/login'>Please log in!</a>",
-      permission: false,
-    };
+    return {status: 401, send: "Please log in first! <a href='/login'>Please log in!</a>", permission: false};
   }
   if (!urlDatabase[req.params.id]) {
-    return {
-      status: 404,
-      send: '<h1>URL does not exist!</h1>',
-      permission: false,
-    };
+    return {status: 404, send: '<h1>URL does not exist!</h1>', permission: false};
   }
- 
   if (urlDatabase[req.params.id].userID !== req.session.user_id) {
-    return {
-      status: 401,
-      send: '<h1>Cannot access this URL!</h1>',
-      permission: false,
-    };
+    return {status: 401, send: '<h1>Cannot access this URL!</h1>', permission: false};
   }
   return { status: 200, send: '', permission: true };
 };

@@ -22,7 +22,7 @@ app.use(cookieSession({
   maxAge: 24 * 60 * 60 * 1000 
 }))
 
-//------------Endpoints------------
+//-------------------Endpoints---------------------
 
 //Homepage: already logged in,redir to url page, if not, login page
 app.get('/', (req, res) => {
@@ -44,9 +44,8 @@ app.get('/urls', (req, res) => {
   const data = userData(req.session);
   const urls = getUrlsForUser(req.session.user_id);
   const templateVars = { urls: urls, username: data.email };
-  console.log("here", templateVars)
+
   res.render('urls_index', templateVars); 
-  // console.log("here", templateVars);
 });
 
 //Urls/new page
@@ -63,7 +62,7 @@ app.get("/urls/new", (req, res) => {
 
 
 //urls/:id page: search for the longUrl by shortUrl
-app.get("/urls/:id", (req, res) => {  //id is shortURL
+app.get("/urls/:id", (req, res) => {  
   //verify if user has permission
   const permission = userPerm(req);
   if (!permission.permission) {
@@ -79,8 +78,7 @@ app.get("/urls/:id", (req, res) => {  //id is shortURL
     longURL: urlData.longURL,
     username: userInfo.username
   };
-  console.log("right here",urlData)
-  console.log("left here",templateVars)
+ 
   return res.render('urls_show', templateVars);
 });
 
@@ -97,7 +95,7 @@ app.post('/urls/:id', (req, res) => {
   return res.redirect('/urls');
 });
 
-//potential bugs below
+
 //u/:id page: if input exist shortURL, will redirect to related longURL
 app.get("/u/:id", (req, res) => { 
 
@@ -125,7 +123,6 @@ app.post("/urls", (req, res) => {
     userID: req.session.user_id,
   };
 
-  // urlDatabase[id] = req.body.longURL; 
   return res.redirect(`/urls/${id}`);
 });
 
@@ -139,7 +136,6 @@ app.post("/urls/:id", (req, res) => {
 
   urlDatabase[req.params.id].longURL = req.body.longURL;
   res.redirect("/urls"); 
-  // console.log("righthere",req.body.longURL)
 })
 
 //POST /urls/:id/delete: to delete unwanted urls from url list 
@@ -152,7 +148,7 @@ app.post('/urls/:id/delete', (req, res) => {
   res.redirect('/urls');
 });
 
-//login page
+//login page--------------------------------------------------------------
 app.get('/login', (req, res) => {
 
   if (userStatus(req.session)) {
@@ -170,7 +166,6 @@ app.get('/register', (req, res) => {
   } 
 
   const templateVars = { username: req.session.user_id };
-  
   return res.render('urls_register', templateVars);
 });
 
@@ -185,7 +180,6 @@ app.post('/login', (req, res) => {
   }
  
   req.session.user_id = userId; //once logged in, store req.session.user_id as uerId
-  
   res.redirect("/urls");
 });
 
