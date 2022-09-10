@@ -11,8 +11,10 @@ const {
   userData,
   userStatus,
   userPerm,
-  userInfo,
+  getUrlsForUser
 } = require('./helpers');
+
+console.log("here");
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
@@ -36,14 +38,18 @@ app.get('/', (req, res) => {
 
 
 app.get('/urls', (req, res) => {  
-  if (!userStatus(req.session)) {
-    res.status(401).send('<h1><center>Please log in first</center></h1>');
+  if (!userStatus(req.session)) { //verify if user is logged in 
+    req.session = null;
+    res.send("Please log in first <a href='/login'>Try Login!</a>");
   }
  
+
   const data = userData(req.session);
-  const info = userInfo(req.session.user_id)
-  const templateVars = { urls: info, username: data.username };
+  const urls = getUrlsForUser(req.session.user_id)
+  const templateVars = { urls: urls, username: data.email };
   res.render('urls_index', templateVars);
+  // console.log("thehatlkds", templateVars);
+  // console.log(data)
 });
 
 
@@ -87,21 +93,19 @@ app.post('/urls/:id', (req, res) => {
 //if input exist shortURL, will redirect to related longURL
 app.get("/u/:id", (req, res) => { //id is shortURL
   const longURL = urlDatabase[req.params.id]
-  res.redirect(longURL); //if input exist, you can click to redirect
+  res.redirect(longURL); 
 });
 
 app.post("/urls", (req, res) => { //use post to trigger previous entered form info, from urls/new to urls.
   const id = generateRandomString();
-  console.log(req.body); // req.body = whatever I input on the form
-  urlDatabase[id] = req.body.longURL; //{ longURL: 'google' }
-  // const templateVars = { id: id, longURL: urlDatabase[id]};// why cause error
-  // res.render('urls_show', templateVars)//these two lines not allow me to redirect.
-  res.redirect("/urls");//??whats this used for? not able to click and redirect
+  console.log(req.body); 
+  urlDatabase[id] = req.body.longURL; 
+  res.redirect("/urls");
 });
 
 //edit 
-app.post("/urls/:id", (req, res) => { //EDIT
-  urlDatabase[req.params.id] = req.body.longURL;//EDIT
+app.post("/urls/:id", (req, res) => { 
+  urlDatabase[req.params.id] = req.body.longURL;
   res.redirect("/urls"); 
 })
 
@@ -120,17 +124,16 @@ app.get('/login', (req, res) => {
     return res.redirect('/urls') // if logged in, redir to homepage
   }
 
-  const data = userData('');
-  res.render("urls_login", data);
+  // const data = userData('');
+  res.render("urls_login", {username: null});
 });
 
 //w3d3:1 : render the new template
 app.get('/register', (req, res) => {
   if (userStatus(req.session)) {//if user logged in, redirect back to homepage
-    
     res.redirect("/urls_");
   } 
-  const templateVars = { username: req.session.username };
+  const templateVars = { username: req.session.user_id };
   
   return res.render('urls_register', templateVars);
 });
@@ -138,37 +141,39 @@ app.get('/register', (req, res) => {
 //login 
 app.post('/login', (req, res) => {
   const email = req.body.email;
-  const userId = getUserByEmail(email, users)
   const pswd = req.body.password;
-
-  if (!users[userId]) {
-    return res.status(400).send('<h3>Incorrect email!</h3>');
+  const userId = getUserByEmail(email)
+  if (!userId || !bcrypt.compareSync(pswd, users[userId].password)&&false) {
+    res.send("Incorrect email or password!<a href='/login'>Please Try Again!</a>");
+    return;
   }
-  if (!bcrypt.compareSync(pswd, users[userId].password)) {
-    return res.status(400).send('<h3>Incorrect password!</h3>');
-  }
-  res.session.user_id = userId;
-  return res.redirect("/urls");
+ 
+  req.session.user_id = userId; //once logged in, req.session.user_id keep a value as userId;only when logged in we have this.
+  
+  res.redirect("/urls");
 });
 
-//done ?//create post /register route
+
 app.post('/register', (req, res) => {
   let email = req.body.email;
   let password = req.body.password;
   
   if (!email || !password) {
-    return res.status(400).send('<h3>Sorry! Your entry is either empty or invalid.</h3>')//html format
+    return res.send("Sorry! Your entry is either empty or invalid.<a href='/register'>Please Try Again!</a>")
   } 
   if (getUserByEmail(email)) {
-    return res.status(400).send(`<h3>${email} already registered</h3>`)
+    return res.send("Email already registered<a href='/login'>Please Login!</a>");
   } 
+
   const randomId = generateRandomString();
+  
   users[randomId] = { 
     id: randomId,
     email: req.body.email,
     password: bcrypt.hashSync(password, 10)
   };
-  res.session.user_id = randomId;
+
+  req.session.user_id = randomId;
   res.redirect("/urls");
 });
 
