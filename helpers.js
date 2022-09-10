@@ -1,6 +1,7 @@
 
 
 const users = {};
+
 const urlDatabase = {};
 
 
@@ -69,23 +70,22 @@ const userPerm = (req) => {
   if (!userStatus(req.session)) {
     return {
       status: 401,
-      send: '<h1><center>Please log in first!</center></h1>',
+      send: "Please log in first! <a href='/login'>Please log in!</a>",
       permission: false,
     };
   }
   if (!urlDatabase[req.params.id]) {
     return {
       status: 404,
-      send: '<h1><center>URL does not exist!</center></h1>',
+      send: '<h1>URL does not exist!</h1>',
       permission: false,
     };
   }
  
-  console.log(req.params.id)
   if (urlDatabase[req.params.id].userID !== req.session.user_id) {
     return {
       status: 401,
-      send: '<h1><center>You do not own this URL!</center></h1>',
+      send: '<h1>Cannot access this URL!</h1>',
       permission: false,
     };
   }
@@ -99,4 +99,4 @@ const userPerm = (req) => {
 
 
 
-module.exports = { users, getUserByEmail, generateRandomString, urlDatabase, userData, userStatus, userPerm, getUrlsForUser };
+module.exports = { users, urlDatabase, getUserByEmail, getUrlsForUser, generateRandomString, userData, userStatus, userPerm };

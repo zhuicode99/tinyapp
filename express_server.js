@@ -2,28 +2,25 @@ const express = require("express");
 const cookieSession = require('cookie-session');
 const app = express();
 const bcrypt = require('bcryptjs');
-const PORT = 8080; // default port 8080
+const PORT = 8080; 
 const { 
-  getUserByEmail,
   users,
-  generateRandomString,
   urlDatabase,
+  getUserByEmail,
+  getUrlsForUser,
+  generateRandomString,
   userData,
   userStatus,
-  userPerm,
-  getUrlsForUser
+  userPerm
 } = require('./helpers');
-
-console.log("here");
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
   keys: ['superman'],
-  maxAge: 24 * 60 * 60 * 1000 ///?
+  maxAge: 24 * 60 * 60 * 1000 
 }))
-
 
 //------------Endpoints------------
 
@@ -37,26 +34,22 @@ app.get('/', (req, res) => {
   }
 });
 
-
+//Urls page
 app.get('/urls', (req, res) => {  
   if (!userStatus(req.session)) { //verify if user is logged in 
     req.session = null;
     res.send("Please log in first <a href='/login'>Try Login!</a>");
   }
- 
-
+  //pass user data to header partial
   const data = userData(req.session);
-  const urls = getUrlsForUser(req.session.user_id)
+  const urls = getUrlsForUser(req.session.user_id);
   const templateVars = { urls: urls, username: data.email };
-  res.render('urls_index', templateVars);
-  // console.log("thehatlkds", templateVars);
-  // console.log(data)
+  res.render('urls_index', templateVars); 
+  // console.log("here", templateVars);
 });
 
-
-
-//GET route to render the urls_new.ejs template
-app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new/ otherwise error
+//Urls/new page
+app.get("/urls/new", (req, res) => { 
   
   if (!userStatus(req.session)) {
     return res.redirect('/login');
@@ -68,29 +61,28 @@ app.get("/urls/new", (req, res) => { // has to be infront of the second urls/new
 });
 
 
-//search for the longUrl by shortUrl
+//urls/:id page: search for the longUrl by shortUrl
 app.get("/urls/:id", (req, res) => {  //id is shortURL
-  
+  //verify if user has permission
   const permission = userPerm(req);
   if (!permission.permission) {
     return res.status(permission.status).send(permission.send);
   }
-
+  //pass user data to header partial
   const userInfo = userData(req.session);
   const userDatabase = getUrlsForUser(req.session.user_id);
   const urlData = userDatabase[req.params.id];
   const templateVars = {
     id: req.params.id,
     longURL: urlData.longURL,
-    username: userInfo.id, //changed from userInfo.username to id
+    username: userInfo.username
   };
-  // console.log("right here",userInfo.id)
+  // TEST console.log("right here",userInfo.id)
   return res.render('urls_show', templateVars);
 });
 
 
-
-
+//POST /urls/:id
 app.post('/urls/:id', (req, res) => {
   const permission = userPerm(req);
 
@@ -102,22 +94,27 @@ app.post('/urls/:id', (req, res) => {
   return res.redirect('/urls');
 });
 
+//potential bugs below
+//u/:id page: if input exist shortURL, will redirect to related longURL
+app.get("/u/:id", (req, res) => { 
 
+  if (!urlDatabase[req.params.id]) {
+    return res.send("<h1>Invalid ID!</h1>");
+  }
 
-
-
-//if input exist shortURL, will redirect to related longURL
-app.get("/u/:id", (req, res) => { //id is shortURL
   const longURL = urlDatabase[req.params.id]
-  res.redirect(longURL); 
+  res.redirect(longURL.longURL); 
 });
 
 
-app.post("/urls", (req, res) => { //use post to trigger previous entered form info, from urls/new to urls.
+//POST /urls page: use post to trigger previous entered form info, from urls/new to urls.
+app.post("/urls", (req, res) => { 
+
   if (!userStatus(req.session)) {
     return res.status(401).send('<h1><center>Please login to use ShortURL!</center></h1>');
   }
-  const id = generateRandomString();//short url
+
+  const id = generateRandomString();
  
   urlDatabase[id] = {
     urlID: id,
@@ -130,67 +127,66 @@ app.post("/urls", (req, res) => { //use post to trigger previous entered form in
 });
 
 
-//edit 
+//POST /urls/:id: to edit longURLs
 app.post("/urls/:id", (req, res) => { 
   const permission = userPerm(req);
   if (!permission.permission) {
     return res.status(permission.status).send(permission.send);
   }
 
-
   urlDatabase[req.params.id].longURL = req.body.longURL;
   res.redirect("/urls"); 
-  console.log("righthere",req.body.longURL)
+  // console.log("righthere",req.body.longURL)
 })
 
-
-
-//delete 
+//POST /urls/:id/delete: to delete unwanted urls from url list 
 app.post('/urls/:id/delete', (req, res) => {
-  // extract the id from the url // req.params
-  const id = req.params.id;
-  // delete it from the db
-  delete urlDatabase[id];
+  
+  const id = req.params.id; // extract the id from the url // req.params
+ 
+  delete urlDatabase[id]; // // delete it from the db
+
   res.redirect('/urls');
 });
 
-//get to login
+//login page
 app.get('/login', (req, res) => {
+
   if (userStatus(req.session)) {
-    return res.redirect('/urls') // if logged in, redir to homepage
+    return res.redirect('/urls') // if logged in, redirect to homepage
   }
 
-  // const data = userData('');
   res.render("urls_login", {username: null});
 });
 
-//w3d3:1 : render the new template
+//register page
 app.get('/register', (req, res) => {
+
   if (userStatus(req.session)) {//if user logged in, redirect back to homepage
     res.redirect("/urls_");
   } 
-  const templateVars = { username: req.session.user_id };
 
+  const templateVars = { username: req.session.user_id };
   
   return res.render('urls_register', templateVars);
 });
 
-//login 
+//POST login 
 app.post('/login', (req, res) => {
   const email = req.body.email;
   const pswd = req.body.password;
-  const userId = getUserByEmail(email)
+  const userId = getUserByEmail(email);
+
   if (!userId || !bcrypt.compareSync(pswd, users[userId].password)) {
-    res.send("Incorrect email or password!<a href='/login'>Please Try Again!</a>");
-    return;
+    return res.send("Incorrect email or password!<a href='/login'>Please Try Again!</a>");
   }
  
-  req.session.user_id = userId; //once logged in, req.session.user_id keep a value as userId;only when logged in we have this.
+  req.session.user_id = userId; //once logged in, store req.session.user_id as uerId
   
   res.redirect("/urls");
 });
 
-
+//POST register
 app.post('/register', (req, res) => {
   let email = req.body.email;
   let password = req.body.password;
@@ -198,6 +194,7 @@ app.post('/register', (req, res) => {
   if (!email || !password) {
     return res.send("Sorry! Your entry is either empty or invalid.<a href='/register'>Please Try Again!</a>")
   } 
+
   if (getUserByEmail(email)) {
     return res.send("Email already registered<a href='/login'>Please Login!</a>");
   } 
@@ -214,13 +211,13 @@ app.post('/register', (req, res) => {
   res.redirect("/urls");
 });
 
-//done//logout
+//POST logout
 app.post('/logout', (req, res) => {
-  // res.clearCookie('session'); //change cookie from username to user_id
-  req.session = null;
+  req.session = null; //clear the cookie when logout
   return res.redirect("/");
 });
 
+//server is listening
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
