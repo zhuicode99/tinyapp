@@ -44,6 +44,7 @@ app.get('/urls', (req, res) => {
   const data = userData(req.session);
   const urls = getUrlsForUser(req.session.user_id);
   const templateVars = { urls: urls, username: data.email };
+  console.log("here", templateVars)
   res.render('urls_index', templateVars); 
   // console.log("here", templateVars);
 });
@@ -72,12 +73,14 @@ app.get("/urls/:id", (req, res) => {  //id is shortURL
   const userInfo = userData(req.session);
   const userDatabase = getUrlsForUser(req.session.user_id);
   const urlData = userDatabase[req.params.id];
+
   const templateVars = {
     id: req.params.id,
     longURL: urlData.longURL,
     username: userInfo.username
   };
-  // TEST console.log("right here",userInfo.id)
+  console.log("right here",urlData)
+  console.log("left here",templateVars)
   return res.render('urls_show', templateVars);
 });
 
