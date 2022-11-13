@@ -149,13 +149,8 @@ app.post('/urls/:id/delete', (req, res) => {
 });
 
 //login page--------------------------------------------------------------
-app.get('/login', (req, res) => {
-
-  if (userStatus(req.session)) {
-    return res.redirect('/urls') // if logged in, redirect to homepage
-  }
-
-  res.render("urls_login", {username: null});
+app.get('/login', (req, res) => { 
+ // TODO: practice here 
 });
 
 //register page
@@ -171,16 +166,7 @@ app.get('/register', (req, res) => {
 
 //POST login 
 app.post('/login', (req, res) => {
-  const email = req.body.email;
-  const pswd = req.body.password;
-  const userId = getUserByEmail(email);
-
-  if (!userId || !bcrypt.compareSync(pswd, users[userId].password)) {
-    return res.send("Incorrect email or password!<a href='/login'>Please Try Again!</a>");
-  }
- 
-  req.session.user_id = userId; //once logged in, store req.session.user_id as uerId
-  res.redirect("/urls");
+ // TODO: practice here 
 });
 
 //POST register
