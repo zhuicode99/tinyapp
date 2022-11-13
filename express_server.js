@@ -2,7 +2,7 @@ const express = require("express");
 const cookieSession = require('cookie-session');
 const app = express();
 const bcrypt = require('bcryptjs');
-const PORT = 8080; 
+const PORT = 8081; 
 const { 
   users,
   urlDatabase,
@@ -150,12 +150,7 @@ app.post('/urls/:id/delete', (req, res) => {
 
 //login page--------------------------------------------------------------
 app.get('/login', (req, res) => {
-
-  if (userStatus(req.session)) {
-    return res.redirect('/urls') // if logged in, redirect to homepage
-  }
-
-  res.render("urls_login", {username: null});
+ //TODO: add your login  logic here 
 });
 
 //register page
@@ -169,18 +164,10 @@ app.get('/register', (req, res) => {
   return res.render('urls_register', templateVars);
 });
 
+ 
 //POST login 
 app.post('/login', (req, res) => {
-  const email = req.body.email;
-  const pswd = req.body.password;
-  const userId = getUserByEmail(email);
-
-  if (!userId || !bcrypt.compareSync(pswd, users[userId].password)) {
-    return res.send("Incorrect email or password!<a href='/login'>Please Try Again!</a>");
-  }
- 
-  req.session.user_id = userId; //once logged in, store req.session.user_id as uerId
-  res.redirect("/urls");
+//TODO login  logic here 
 });
 
 //POST register
